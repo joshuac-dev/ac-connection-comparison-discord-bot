@@ -194,24 +194,40 @@ class NetworkCog(commands.Cog):
                         competition = 0
                     elif isinstance(links, list):
                         logger.debug(f"  -> Got list of {len(links)} links for {airport_iata}")
+                        if links and DEBUG_MODE:
+                            # Log the first link structure to understand the data
+                            first_link = links[0] if links else None
+                            if first_link:
+                                logger.debug(f"  -> First link structure: {first_link}")
+                                logger.debug(f"  -> First link keys: {first_link.keys() if isinstance(first_link, dict) else 'not a dict'}")
                         competition = 0
                         for link in links:
                             if isinstance(link, dict):
-                                cap = link.get("capacity", 0)
+                                # Try multiple possible key names for capacity
+                                cap = link.get("capacity", link.get("assignedCapacity", link.get("totalCapacity", 0)))
+                                if isinstance(cap, dict):
+                                    # Capacity might be nested, try to extract a total
+                                    cap = cap.get("total", cap.get("economy", 0)) + cap.get("business", 0) + cap.get("first", 0)
                                 if isinstance(cap, (int, float)):
                                     competition += cap
                                 else:
                                     logger.debug(f"  -> Non-numeric capacity in link: {type(cap)} = {cap}")
                         logger.debug(f"  -> Total competition for {airport_iata}: {competition}")
                     elif isinstance(links, dict):
-                        logger.debug(f"  -> Got dict response for {airport_iata}, keys: {links.keys()}")
+                        logger.debug(f"  -> Got dict response for {airport_iata}, keys: {list(links.keys())}")
+                        if DEBUG_MODE:
+                            logger.debug(f"  -> Dict content sample: {str(links)[:500]}")
                         link_list = links.get("links", links.get("data", []))
                         competition = 0
                         if isinstance(link_list, list):
                             logger.debug(f"  -> Extracted {len(link_list)} links from dict")
+                            if link_list and DEBUG_MODE:
+                                logger.debug(f"  -> First link from dict: {link_list[0]}")
                             for link in link_list:
                                 if isinstance(link, dict):
-                                    cap = link.get("capacity", 0)
+                                    cap = link.get("capacity", link.get("assignedCapacity", link.get("totalCapacity", 0)))
+                                    if isinstance(cap, dict):
+                                        cap = cap.get("total", cap.get("economy", 0)) + cap.get("business", 0) + cap.get("first", 0)
                                     if isinstance(cap, (int, float)):
                                         competition += cap
                         logger.debug(f"  -> Total competition for {airport_iata}: {competition}")
@@ -228,6 +244,15 @@ class NetworkCog(commands.Cog):
             )
             
             logger.debug(f"PHASE B: Completed fetching competition for {len(results)} airports")
+            
+            # Summary of competition data
+            airports_with_competition = sum(1 for r in results if r.get("competition", 0) > 0)
+            airports_no_competition = len(results) - airports_with_competition
+            total_competition = sum(r.get("competition", 0) for r in results)
+            logger.debug(f"Competition summary:")
+            logger.debug(f"  - Airports with competition > 0: {airports_with_competition}")
+            logger.debug(f"  - Airports with 0 competition: {airports_no_competition}")
+            logger.debug(f"  - Total competition seats: {total_competition}")
             
             # Phase C: Calculate BOS and prepare results
             logger.debug("PHASE C: Calculating BOS scores")
