@@ -17,13 +17,22 @@ except ImportError:
 from utils.http import http_client
 
 
+# Check DEBUG mode from environment
+DEBUG_MODE = os.environ.get("DEBUG", "false").lower() in ("true", "1", "yes")
+
 # Configure logging
+log_level = logging.DEBUG if DEBUG_MODE else logging.INFO
 logging.basicConfig(
-    level=logging.INFO,
+    level=log_level,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[logging.StreamHandler(sys.stdout)]
 )
 logger = logging.getLogger(__name__)
+
+if DEBUG_MODE:
+    logger.info("🔧 DEBUG MODE ENABLED - Verbose logging active")
+else:
+    logger.info("Running in normal mode (set DEBUG=true for verbose logging)")
 
 
 class AirlineBot(commands.Bot):
