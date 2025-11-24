@@ -3,6 +3,7 @@
 import os
 import sys
 import asyncio
+import logging
 import discord
 from discord.ext import commands
 
@@ -14,6 +15,15 @@ except ImportError:
     pass
 
 from utils.http import http_client
+
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
+logger = logging.getLogger(__name__)
 
 
 class AirlineBot(commands.Bot):
@@ -38,14 +48,14 @@ class AirlineBot(commands.Bot):
         await self.load_extension("cogs.network")
         
         # Sync slash commands
-        print("Syncing slash commands...")
+        logger.info("Syncing slash commands...")
         await self.tree.sync()
-        print("Slash commands synced!")
+        logger.info("Slash commands synced!")
     
     async def on_ready(self):
         """Called when bot is ready."""
-        print(f"Bot logged in as {self.user} (ID: {self.user.id})")
-        print("------")
+        logger.info(f"Bot logged in as {self.user} (ID: {self.user.id})")
+        logger.info("------")
     
     async def close(self):
         """Clean up resources when bot is closing."""
@@ -58,8 +68,8 @@ async def main():
     # Get Discord token from environment
     token = os.environ.get("DISCORD_TOKEN")
     if not token:
-        print("ERROR: DISCORD_TOKEN environment variable not set!")
-        print("Please set DISCORD_TOKEN before running the bot.")
+        logger.error("DISCORD_TOKEN environment variable not set!")
+        logger.error("Please set DISCORD_TOKEN before running the bot.")
         sys.exit(1)
     
     # Create and run bot
@@ -68,7 +78,7 @@ async def main():
     try:
         await bot.start(token)
     except KeyboardInterrupt:
-        print("\nShutting down...")
+        logger.info("Shutting down...")
     finally:
         await bot.close()
 
@@ -77,4 +87,4 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print("\nBot stopped.")
+        logger.info("Bot stopped.")

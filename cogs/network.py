@@ -1,6 +1,7 @@
 """Network optimization cog for the Discord bot."""
 
 import asyncio
+import logging
 from typing import Dict, List, Optional, Tuple
 import discord
 from discord import app_commands
@@ -9,6 +10,10 @@ from discord.ext import commands
 from utils.http import http_client
 from utils.geo import haversine_distance
 from utils.scoring import calculate_bos
+
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 
 class NetworkCog(commands.Cog):
@@ -193,7 +198,7 @@ class NetworkCog(commands.Cog):
             await interaction.followup.send(f"```\n{table}\n```")
             
         except Exception as e:
-            print(f"Error in network-run command: {e}")
+            logger.error(f"Error in network-run command: {e}")
             await interaction.followup.send(
                 f"❌ An error occurred: {str(e)}",
                 ephemeral=True,

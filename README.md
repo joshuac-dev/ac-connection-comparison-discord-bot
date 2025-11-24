@@ -27,8 +27,6 @@ pip install -r requirements.txt
 This will install:
 - discord.py (Discord API wrapper)
 - aiohttp (Async HTTP client)
-- pandas (Data manipulation)
-- numpy (Numerical operations)
 - python-dotenv (Environment variable management)
 
 ### 2. Set Up Discord Bot Token

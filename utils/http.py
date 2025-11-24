@@ -1,10 +1,14 @@
 """HTTP utility functions for API requests with caching."""
 
 import asyncio
+import logging
 import time
 from typing import Any, Dict, List, Optional
 import aiohttp
 
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 # HTTP headers for requests
 HEADERS = {
@@ -89,13 +93,13 @@ class HTTPClient:
                     
                     return data
                 else:
-                    print(f"Failed to fetch {url}: HTTP {response.status}")
+                    logger.warning(f"Failed to fetch {url}: HTTP {response.status}")
                     return None
         except asyncio.TimeoutError:
-            print(f"Timeout fetching {url}")
+            logger.warning(f"Timeout fetching {url}")
             return None
         except Exception as e:
-            print(f"Error fetching {url}: {e}")
+            logger.error(f"Error fetching {url}: {e}")
             return None
     
     async def fetch_countries(self) -> Optional[List[Dict[str, Any]]]:
