@@ -33,6 +33,7 @@ class AirlineBot(commands.Bot):
         """Initialize the bot."""
         intents = discord.Intents.default()
         intents.message_content = True
+        intents.members = True  # Helps bot appear in member list
         
         super().__init__(
             command_prefix="!",  # Prefix for legacy commands (not used)

@@ -189,7 +189,7 @@ Follow these detailed steps to create a Discord bot and get your token:
    - Scroll down to "Privileged Gateway Intents"
    - Enable the following intents:
      - ✅ **Message Content Intent** (required)
-     - ✅ **Server Members Intent** (optional, but recommended)
+     - ✅ **Server Members Intent** (required - helps bot appear in member list)
 
 6. **Invite Bot to Your Server**
    - In the left sidebar, click "OAuth2" → "URL Generator"
@@ -281,6 +281,13 @@ INFO:__main__:------
 ```
 
 **If you see this, congratulations! Your bot is running! 🎉**
+
+**Verify the bot is working:**
+1. **Check Discord** - Open your Discord server
+2. **Type `/`** in any text channel - you should see the bot's commands
+3. **If commands appear** - Bot is working! (Even if not visible in member list)
+4. **Check Server Settings** → Integrations → Bots - your bot should be listed
+5. **Member list visibility:** Bot may take a few minutes to appear in member list, or may not show at all depending on Discord's caching. This is normal and doesn't affect functionality.
 
 **Common Issues:**
 - **"DISCORD_TOKEN environment variable not set!"**
@@ -678,10 +685,22 @@ A: Yes! All the code is in this repository. The main files are `bot.py` and `cog
 - No spaces before or after the `=` sign
 
 **Bot doesn't appear online in Discord:**
+- **If bot is running and logs show "Bot logged in" but you don't see it in member list:**
+  - The bot IS in your server if you see "Bot logged in" in console
+  - Try these verification steps:
+    1. Type `/` in any channel - you should see the bot's commands
+    2. Check Server Settings → Integrations → Bots and Apps - bot should be listed there
+    3. Right-click on a channel → Edit Channel → Permissions - check if bot role is listed
+  - Discord sometimes doesn't immediately show bots in the member list
+  - The member list display can be cached - try:
+    - Refreshing Discord (Ctrl+R or Cmd+R)
+    - Restarting Discord client
+    - Checking on Discord web version or mobile app
 - Verify your token is correct (try resetting it in Discord Developer Portal)
 - Make sure you invited the bot to your server
-- Check that the bot has "Presence Intent" enabled (optional but helpful)
+- Check that the bot has "Server Members Intent" enabled in Developer Portal (Bot settings)
 - Wait a minute - sometimes Discord takes time to update
+- **The bot works if commands sync successfully, even if not visible in member list**
 
 **Slash commands don't appear:**
 - Wait 1-5 minutes after starting the bot (Discord needs time to register commands)
