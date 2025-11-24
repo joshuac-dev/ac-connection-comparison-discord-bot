@@ -67,9 +67,9 @@ If you don't have Python installed:
 
 **Linux:**
 ```bash
-# Ubuntu/Debian
+# Ubuntu/Debian (install python3-venv for virtual environment support)
 sudo apt update
-sudo apt install python3 python3-pip
+sudo apt install python3 python3-pip python3-venv python3-full
 
 # Fedora
 sudo dnf install python3 python3-pip
@@ -95,17 +95,60 @@ cd ac-connection-comparison-discord-bot
 
 ### Step 3: Install Python Dependencies
 
-In your terminal/command prompt, navigate to the bot directory and run:
+**IMPORTANT for Linux Users:** Modern Linux distributions (Debian 12+, Ubuntu 23.04+) require using a virtual environment. If you get an "externally-managed-environment" error, see the instructions below.
+
+#### Option 1: Using Virtual Environment (Recommended for Linux, Good Practice for All)
+
+**Create and activate virtual environment:**
+
+**Windows:**
+```bash
+python -m venv venv
+venv\Scripts\activate
+```
+
+**macOS/Linux:**
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+You should see `(venv)` appear at the start of your command prompt.
+
+**Install dependencies:**
+```bash
+pip install -r requirements.txt
+```
+
+**When you're done using the bot, deactivate:**
+```bash
+deactivate
+```
+
+**Next time you want to run the bot:**
+```bash
+# Activate the virtual environment first
+source venv/bin/activate  # macOS/Linux
+# or
+venv\Scripts\activate     # Windows
+
+# Then run the bot
+python bot.py
+```
+
+#### Option 2: System-Wide Installation (Windows/macOS only)
 
 **Windows:**
 ```bash
 pip install -r requirements.txt
 ```
 
-**macOS/Linux:**
+**macOS:**
 ```bash
 pip3 install -r requirements.txt
 ```
+
+⚠️ **Linux users:** System-wide installation is blocked by PEP 668 on modern distributions. Use Option 1 (virtual environment) instead.
 
 This will install:
 - `discord.py` - Discord API wrapper for Python
@@ -113,8 +156,10 @@ This will install:
 - `python-dotenv` - Environment variable management
 
 **Troubleshooting:**
+- **"externally-managed-environment" error on Linux:** This is expected on modern Linux systems. Use Option 1 (virtual environment) above.
 - If you get "pip not found", try `python -m pip install -r requirements.txt`
-- If you get permission errors on Linux/macOS, add `--user` flag: `pip3 install --user -r requirements.txt`
+- If you get permission errors on older Linux/macOS, add `--user` flag: `pip3 install --user -r requirements.txt`
+- If virtual environment creation fails, install python3-venv: `sudo apt install python3-venv python3-full` (Ubuntu/Debian)
 
 ### Step 4: Create Your Discord Bot
 
@@ -201,7 +246,21 @@ You should see your token (don't share this output with anyone!)
 
 ### Step 6: Run the Bot
 
-Start the bot with:
+**If you used a virtual environment in Step 3, activate it first:**
+
+**Windows:**
+```bash
+venv\Scripts\activate
+```
+
+**macOS/Linux:**
+```bash
+source venv/bin/activate
+```
+
+You should see `(venv)` at the start of your prompt.
+
+**Now start the bot:**
 
 **Windows:**
 ```bash
@@ -230,6 +289,7 @@ INFO:__main__:------
   - Try restarting your terminal
 
 - **"discord.py not found" or "ModuleNotFoundError"**
+  - If using virtual environment: Make sure it's activated (you should see `(venv)` in your prompt)
   - Run the install command again: `pip install -r requirements.txt`
   - Make sure you're using the same Python version (python vs python3)
 
@@ -484,6 +544,15 @@ A: Yes! The bot works on any system that can run Python 3.9+. See the "Advanced 
 **Q: What is a ".env" file and why can't I see it?**  
 A: The `.env` file stores your Discord token. Files starting with a dot are hidden by default. On Windows, enable "Show hidden files" in File Explorer. On macOS/Linux, use `ls -la` to see it.
 
+**Q: I'm getting "externally-managed-environment" error on Linux. What do I do?**  
+A: This is normal on modern Linux systems (Debian 12+, Ubuntu 23.04+). You must use a virtual environment:
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+See Step 3 in the setup guide for detailed instructions. This is now standard practice on Linux to prevent breaking system packages.
+
 ### Usage Questions
 
 **Q: What's a good `min_openness` value?**  
@@ -565,16 +634,37 @@ A: Yes! All the code is in this repository. The main files are `bot.py` and `cog
 
 ### Installation Issues
 
+**"externally-managed-environment" error on Linux:**
+- **This is the most common issue on modern Linux systems (Debian 12+, Ubuntu 23.04+)**
+- Modern Linux distributions implement PEP 668 to prevent breaking system packages
+- **Solution:** Use a virtual environment (recommended):
+  ```bash
+  # Create virtual environment
+  python3 -m venv venv
+  
+  # Activate it
+  source venv/bin/activate
+  
+  # Install dependencies
+  pip install -r requirements.txt
+  
+  # Run the bot (virtual environment must be activated)
+  python bot.py
+  ```
+- If `python3 -m venv` fails, install venv support: `sudo apt install python3-venv python3-full`
+- Alternative (not recommended): Use `--break-system-packages` flag, but this can cause system issues
+
 **"Python not found" or "pip not found":**
 - Make sure Python is installed and added to PATH
 - Try using `python3` and `pip3` instead of `python` and `pip`
 - On Windows, try `py -3` instead of `python`
 
 **"Permission denied" when installing packages:**
-- On Linux/macOS, use: `pip3 install --user -r requirements.txt`
-- Alternatively, create a virtual environment (see Advanced Setup below)
+- On modern Linux: Use virtual environment (see above)
+- On older Linux/macOS: `pip3 install --user -r requirements.txt`
 
 **"Module not found" errors when running the bot:**
+- If using virtual environment: Make sure it's activated (you should see `(venv)` in prompt)
 - Make sure you installed dependencies: `pip install -r requirements.txt`
 - Check you're using the same Python version for both installing and running
 - Try: `python -m pip install -r requirements.txt` then `python bot.py`
