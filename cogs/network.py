@@ -140,11 +140,28 @@ class NetworkCog(commands.Cog):
                     if links is None:
                         # Treat as 0 competition if fetch fails
                         competition = 0
+                    elif isinstance(links, list):
+                        # Sum capacities from link objects
+                        competition = 0
+                        for link in links:
+                            if isinstance(link, dict):
+                                cap = link.get("capacity", 0)
+                                # Handle case where capacity might be a dict or nested
+                                if isinstance(cap, (int, float)):
+                                    competition += cap
+                    elif isinstance(links, dict):
+                        # Handle case where response is wrapped in a dict
+                        # Try to find a list of links within the dict
+                        link_list = links.get("links", links.get("data", []))
+                        competition = 0
+                        if isinstance(link_list, list):
+                            for link in link_list:
+                                if isinstance(link, dict):
+                                    cap = link.get("capacity", 0)
+                                    if isinstance(cap, (int, float)):
+                                        competition += cap
                     else:
-                        # Sum capacities
-                        competition = sum(
-                            link.get("capacity", 0) for link in links
-                        )
+                        competition = 0
                     
                     airport_data["competition"] = competition
                     return airport_data
