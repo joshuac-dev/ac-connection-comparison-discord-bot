@@ -203,11 +203,16 @@ class NetworkCog(commands.Cog):
                         competition = 0
                         for link in links:
                             if isinstance(link, dict):
-                                # Try multiple possible key names for capacity
-                                cap = link.get("capacity", link.get("assignedCapacity", link.get("totalCapacity", 0)))
-                                if isinstance(cap, dict):
-                                    # Capacity might be nested, try to extract a total
-                                    cap = cap.get("total", cap.get("economy", 0)) + cap.get("business", 0) + cap.get("first", 0)
+                                cap_data = link.get("capacity", 0)
+                                # Capacity is a nested dict with economy/business/first/total
+                                if isinstance(cap_data, dict):
+                                    # Use 'total' if available, otherwise sum the components
+                                    cap = cap_data.get("total", 0)
+                                    if cap == 0:
+                                        cap = cap_data.get("economy", 0) + cap_data.get("business", 0) + cap_data.get("first", 0)
+                                    logger.debug(f"  -> Link capacity (from dict): {cap}")
+                                else:
+                                    cap = cap_data
                                 if isinstance(cap, (int, float)):
                                     competition += cap
                                 else:
@@ -225,9 +230,13 @@ class NetworkCog(commands.Cog):
                                 logger.debug(f"  -> First link from dict: {link_list[0]}")
                             for link in link_list:
                                 if isinstance(link, dict):
-                                    cap = link.get("capacity", link.get("assignedCapacity", link.get("totalCapacity", 0)))
-                                    if isinstance(cap, dict):
-                                        cap = cap.get("total", cap.get("economy", 0)) + cap.get("business", 0) + cap.get("first", 0)
+                                    cap_data = link.get("capacity", 0)
+                                    if isinstance(cap_data, dict):
+                                        cap = cap_data.get("total", 0)
+                                        if cap == 0:
+                                            cap = cap_data.get("economy", 0) + cap_data.get("business", 0) + cap_data.get("first", 0)
+                                    else:
+                                        cap = cap_data
                                     if isinstance(cap, (int, float)):
                                         competition += cap
                         logger.debug(f"  -> Total competition for {airport_iata}: {competition}")
