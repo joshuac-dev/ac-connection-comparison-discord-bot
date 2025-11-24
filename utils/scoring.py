@@ -5,12 +5,12 @@ from typing import Optional
 
 import math
 
-def calculate_bos(airport, hq_data, competition):
+def calculate_bos(population, income_level, competition, distance):
     # 1. Distance Factor (Synergy)
     # Using the provided Haversine utility from your geo.py
     # (Assuming simple distance calc here for the formula)
     
-    dist = airport['distance'] # This is passed from the bot logic
+    dist = distance
     
     if dist < 200:
         d_factor = 0.1 # Cannibalization penalty
@@ -23,11 +23,11 @@ def calculate_bos(airport, hq_data, competition):
     # We increase the weight of Income significantly (power of 2)
     # We make population linear (power of 1)
     # We divide population by 1,000,000 just to keep the final score numbers readable
-    pop_millions = airport['population'] / 1000000
+    pop_millions = population / 1000000
     
     # Example: 50 income becomes 2500 multiplier. 
     # This ensures rich cities dominate poor mega-cities.
-    economics = (pop_millions) * (airport['incomeLevel'] ** 2)
+    economics = (pop_millions) * (income_level ** 2)
 
     # 3. Competition Dampener
     # Instead of exponential punishment, we treat competition as "Noise"
