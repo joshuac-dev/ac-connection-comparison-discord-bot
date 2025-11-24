@@ -109,7 +109,7 @@ class HTTPClient:
         Returns:
             List of country objects or None if request fails
         """
-        return await self.fetch_json("/api/countries", use_cache=True)
+        return await self.fetch_json("/countries", use_cache=True)
     
     async def fetch_airports(self) -> Optional[List[Dict[str, Any]]]:
         """
@@ -118,7 +118,7 @@ class HTTPClient:
         Returns:
             List of airport objects or None if request fails
         """
-        return await self.fetch_json("/api/airports", use_cache=True)
+        return await self.fetch_json("/airports", use_cache=True)
     
     async def fetch_airport_links(self, airport_id: int) -> Optional[List[Dict[str, Any]]]:
         """
@@ -131,7 +131,7 @@ class HTTPClient:
             List of link objects or None if request fails
         """
         return await self.fetch_json(
-            f"/api/airport/{airport_id}/links",
+            f"/airports/{airport_id}/links",
             use_cache=False,  # Don't cache individual airport links
         )
 
