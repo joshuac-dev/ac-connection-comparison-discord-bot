@@ -120,8 +120,8 @@ def calculate_bos(
     dist_weight = DIST_FLOOR + (DIST_PEAK - DIST_FLOOR) * gaussian
     
     # 4. Openness Weighting
-    # openness in [0..10] -> multiplier in [0.9..1.1]
-    # openness_weight = 0.9 + 0.02 * openness
+    # Formula: openness_weight = 0.9 + 0.02 * openness
+    # Maps openness [0..10] to multiplier [0.9..1.1]
     # Clamp openness to valid range
     openness_clamped = max(0, min(10, openness))
     openness_weight = 0.9 + 0.02 * openness_clamped

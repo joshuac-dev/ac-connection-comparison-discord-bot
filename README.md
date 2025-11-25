@@ -434,7 +434,12 @@ To set a profile, add this line to your `.env` file:
 BOS_PROFILE=growth
 ```
 
-**Note:** Country openness is now factored into BOS scoring automatically using the formula `openness_weight = 0.9 + 0.02 × openness`. This means airports in more open countries (higher openness value) will rank better even if you set `min_openness=0`. The `min_openness` parameter still filters out countries below the threshold, but openness now also affects the score itself.
+**Note:** Country openness is now factored into BOS scoring automatically using the formula `openness_weight = 0.9 + 0.02 × openness`. For example:
+- Openness 0 (closed) → 0.9x multiplier (10% penalty)
+- Openness 5 (moderate) → 1.0x multiplier (neutral)
+- Openness 10 (fully open) → 1.1x multiplier (10% bonus)
+
+This means airports in more open countries (higher openness value) will rank better even if you set `min_openness=0`. The `min_openness` parameter still filters out countries below the threshold, but openness now also affects the score itself.
 
 **What this means:**
 - Airports with **high population and income** get higher scores
