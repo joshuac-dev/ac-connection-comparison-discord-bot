@@ -375,22 +375,73 @@ BOS is a formula that helps you find the best airports to expand your airline ne
 
 ### The BOS Formula (For the Math-Inclined)
 
-```
-distance_factor = 0.1 if distance < 200km          (too close = penalty)
-                  1.5 if 200km ≤ distance ≤ 2000km (sweet spot = bonus)
-                  1.0 if distance > 2000km         (normal long-haul)
+The updated BOS formula uses a smooth, tunable approach that reduces bias toward too-small airports with high income:
 
-competition_score = competition_seats / 10000
-
-BOS = (Population^0.7 × Income^1.3) / (1 + competition_score)^1.5 × distance_factor
 ```
+Economic Term:
+  economics = population^POP_EXP × income^INCOME_EXP
+  (Reduces overweighting of tiny but wealthy cities)
+
+Competition Dampening:
+  comp_pen = (1 + ln(1 + seats/COMP_SCALE))^COMP_EXP
+  (Diminishing marginal penalty in very crowded hubs)
+
+Distance Weighting:
+  Gaussian-shaped preference centered around DIST_MU (1500 km) with sigma ~1200 km
+  dist_weight ∈ [DIST_FLOOR, DIST_PEAK]
+  (Smooth preference for realistic stage lengths without forcing short- or long-haul)
+
+Openness Weighting:
+  openness_weight = 0.9 + 0.02 × openness
+  (Countries with openness 0 get 0.9x multiplier, openness 10 get 1.1x multiplier)
+
+Final BOS:
+  BOS = (economics / comp_pen) × dist_weight × openness_weight
+```
+
+**Key improvements:**
+- **Less bias toward tiny airports**: The new formula with `POP_EXP=0.85` and `INCOME_EXP=1.25` (balanced profile) reduces the dominance of small but wealthy airports
+- **Smoother distance preference**: Gaussian weighting provides smooth transitions instead of sharp cutoffs
+- **Diminishing competition penalty**: Log-based formula means extremely crowded hubs aren't overly penalized
+- **Openness matters**: Countries with higher openness levels rank better even if you don't filter by openness
+
+### BOS Profiles
+
+You can customize the BOS calculation by setting the `BOS_PROFILE` environment variable in your `.env` file. Three profiles are available:
+
+**balanced** (default):
+- Best for general use
+- Parameters: `POP_EXP=0.85`, `INCOME_EXP=1.25`, `COMP_EXP=1.2`
+- Distance preference: 1500 km ± 1200 km
+- Balanced weighting of all factors
+
+**growth**:
+- Favor larger markets and wealthier cities more strongly
+- Less afraid of competition
+- Parameters: `POP_EXP=0.9`, `INCOME_EXP=1.3`, `COMP_EXP=1.0`
+- Distance preference: 1400 km ± 1200 km
+- Good for aggressive expansion strategies
+
+**conservative**:
+- Strongly avoid competition
+- More balanced population/income weighting
+- Parameters: `POP_EXP=0.8`, `INCOME_EXP=1.2`, `COMP_EXP=1.4`
+- Distance preference: 1600 km ± 1200 km
+- Good for risk-averse strategies in contested markets
+
+To set a profile, add this line to your `.env` file:
+```
+BOS_PROFILE=growth
+```
+
+**Note:** Country openness is now factored into BOS scoring automatically using the formula `openness_weight = 0.9 + 0.02 × openness`. This means airports in more open countries (higher openness value) will rank better even if you set `min_openness=0`. The `min_openness` parameter still filters out countries below the threshold, but openness now also affects the score itself.
 
 **What this means:**
 - Airports with **high population and income** get higher scores
-- Airports with **lots of competition** get lower scores
-- Airports **200-2000 km away** get a 1.5x bonus (optimal distance)
-- Airports **under 200 km** get a 0.1x penalty (too close to HQ)
-- Airports **over 2000 km** are normal (no bonus or penalty)
+- The formula now uses **smoother exponents** (`population^0.85 × income^1.25` in balanced mode) to reduce bias toward tiny rich airports
+- Airports with **lots of competition** get lower scores with **diminishing returns** (very crowded hubs aren't excessively penalized)
+- Airports at **optimal distances** (~1500 km in balanced mode) get higher scores via **Gaussian weighting** (smooth bell curve)
+- Airports in **more open countries** get a **bonus multiplier** (openness 10 = 1.1x, openness 0 = 0.9x)
 
 ### How the Bot Works (Behind the Scenes)
 
