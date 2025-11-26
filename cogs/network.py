@@ -36,7 +36,8 @@ class NetworkCog(commands.Cog):
     @app_commands.describe(
         hq_code="IATA code of your headquarters airport (e.g., LAX, JFK)",
         min_openness="Minimum country openness (0-10, default: 0)",
-        max_distance="Maximum distance from HQ in km (default: 20000)"
+        max_distance="Maximum distance from HQ in km (default: 20000)",
+        max_results="Maximum number of results to show (1-50, default: 15)"
     )
     async def network_run(
         self,
@@ -44,6 +45,7 @@ class NetworkCog(commands.Cog):
         hq_code: str,
         min_openness: Optional[int] = 0,
         max_distance: Optional[int] = 20000,
+        max_results: Optional[int] = 15,
     ):
         """
         Find optimal airports for airline network based on HQ location.
@@ -53,12 +55,16 @@ class NetworkCog(commands.Cog):
             hq_code: IATA code of HQ airport
             min_openness: Minimum country openness filter
             max_distance: Maximum distance from HQ filter
+            max_results: Maximum number of results to return
         """
         # Defer response as this will take time
         await interaction.response.defer()
         
+        # Clamp max_results to valid range
+        max_results = max(1, min(50, max_results))
+        
         logger.debug(f"========== NETWORK-RUN COMMAND STARTED ==========")
-        logger.debug(f"Parameters: hq_code={hq_code}, min_openness={min_openness}, max_distance={max_distance}")
+        logger.debug(f"Parameters: hq_code={hq_code}, min_openness={min_openness}, max_distance={max_distance}, max_results={max_results}")
         logger.debug(f"BOS Profile: {BOS_PROFILE}")
         logger.debug(f"User: {interaction.user} (ID: {interaction.user.id})")
         logger.debug(f"Guild: {interaction.guild.name if interaction.guild else 'DM'}")
@@ -320,22 +326,23 @@ class NetworkCog(commands.Cog):
                 )
                 return
             
-            # Sort by BOS descending and take top 15
+            # Sort by BOS descending and take top N
             scored_airports.sort(key=lambda x: x["bos"], reverse=True)
-            top_airports = scored_airports[:15]
+            top_airports = scored_airports[:max_results]
             
-            logger.debug(f"Top 15 airports by BOS:")
+            logger.debug(f"Top {max_results} airports by BOS:")
             for i, ap in enumerate(top_airports, 1):
                 logger.debug(f"  {i}. {ap['iata']}: BOS={ap['bos']:.2f}, pop={ap['population']}, income={ap['income']}, comp={ap['competition']}")
             
-            # Format output table
-            table = self._format_table(top_airports)
+            # Format output tables (may be multiple if results exceed Discord limit)
+            tables = self._format_tables(top_airports)
             
             logger.debug(f"========== NETWORK-RUN COMMAND COMPLETED ==========")
-            logger.debug(f"Returning {len(top_airports)} results to user")
+            logger.debug(f"Returning {len(top_airports)} results to user in {len(tables)} message(s)")
             
-            # Send response
-            await interaction.followup.send(f"```\n{table}\n```")
+            # Send response(s)
+            for table in tables:
+                await interaction.followup.send(f"```\n{table}\n```")
             
         except Exception as e:
             logger.error(f"Error in network-run command: {e}")
@@ -345,27 +352,25 @@ class NetworkCog(commands.Cog):
                 ephemeral=True,
             )
     
-    def _format_table(self, airports: List[Dict]) -> str:
+    def _format_tables(self, airports: List[Dict]) -> List[str]:
         """
-        Format airports data as a fixed-width table.
+        Format airports data as fixed-width tables, splitting across multiple messages if needed.
         
         Args:
             airports: List of airport data dictionaries
         
         Returns:
-            Formatted table string
+            List of formatted table strings (one per message)
         """
-        # Build header
-        lines = []
         header = (
             "Rank | IATA | Name                   | CC(Open) | Dist(km) | "
             "Pop     | Income | CompSeats | BOS"
         )
         separator = "-" * len(header)
-        lines.append(header)
-        lines.append(separator)
+        header_lines = [header, separator]
         
-        # Build rows
+        # Build all rows
+        all_rows = []
         for i, airport in enumerate(airports, 1):
             # Truncate name to 22 characters
             name = airport["name"][:22].ljust(22)
@@ -381,16 +386,38 @@ class NetworkCog(commands.Cog):
                 f"{airport['competition']:9d} | "
                 f"{airport['bos']:6.2f}"
             )
-            lines.append(row)
+            all_rows.append(row)
         
-        table = "\n".join(lines)
+        # Split rows into tables that fit within Discord's limit
+        # Account for code block markers (```\n and \n```) = ~8 chars
+        max_table_length = 1900
+        tables = []
+        current_rows = []
         
-        # Ensure table fits within Discord message limit (2000 chars)
-        if len(table) > 1900:
-            # Truncate if too long (shouldn't happen with 15 entries)
-            table = table[:1900] + "..."
+        for row in all_rows:
+            # Build tentative table with current rows + new row
+            tentative_lines = header_lines + current_rows + [row]
+            tentative_table = "\n".join(tentative_lines)
+            
+            if len(tentative_table) <= max_table_length:
+                current_rows.append(row)
+            else:
+                # Current table is full, save it and start new one
+                if current_rows:
+                    tables.append("\n".join(header_lines + current_rows))
+                # Verify single row fits with header (it always should, but be safe)
+                single_row_table = "\n".join(header_lines + [row])
+                if len(single_row_table) <= max_table_length:
+                    current_rows = [row]
+                else:
+                    # Skip oversized row (shouldn't happen with our format)
+                    current_rows = []
         
-        return table
+        # Don't forget the last table
+        if current_rows:
+            tables.append("\n".join(header_lines + current_rows))
+        
+        return tables
 
 
 async def setup(bot: commands.Bot):
