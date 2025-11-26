@@ -393,13 +393,12 @@ class NetworkCog(commands.Cog):
         
         # Ensure table fits within Discord message limit (2000 chars)
         # With up to 50 results, we may need to truncate by removing complete rows
-        if len(table) > 1900:
-            # Remove rows from the end until we fit
-            while len(table) > 1900 and len(lines) > 3:  # Keep header and at least 1 result
-                lines.pop()
+        while len(table) > 1900 and len(lines) > 3:  # Keep header and at least 1 result
+            lines.pop()
             table = "\n".join(lines)
-            if len(table) > 1900:
-                table = table[:1900] + "..."
+        
+        if len(table) > 1900:
+            table = table[:1900] + "..."
         
         return table
 
