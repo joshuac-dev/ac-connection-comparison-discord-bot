@@ -10,7 +10,7 @@ from discord.ext import commands
 
 from utils.http import http_client
 from utils.geo import haversine_distance
-from utils.scoring import calculate_bos
+from utils.scoring import calculate_bos, BOS_PROFILE
 
 
 # Set up logging
@@ -59,6 +59,7 @@ class NetworkCog(commands.Cog):
         
         logger.debug(f"========== NETWORK-RUN COMMAND STARTED ==========")
         logger.debug(f"Parameters: hq_code={hq_code}, min_openness={min_openness}, max_distance={max_distance}")
+        logger.debug(f"BOS Profile: {BOS_PROFILE}")
         logger.debug(f"User: {interaction.user} (ID: {interaction.user.id})")
         logger.debug(f"Guild: {interaction.guild.name if interaction.guild else 'DM'}")
         
@@ -279,9 +280,9 @@ class NetworkCog(commands.Cog):
                 population = airport.get("population", 0)
                 income_level = airport.get("incomeLevel", 0)
                 
-                logger.debug(f"Scoring {airport.get('iata', '???')}: pop={population}, income={income_level}, comp={competition}, dist={distance:.1f}")
+                logger.debug(f"Scoring {airport.get('iata', '???')}: pop={population}, income={income_level}, comp={competition}, dist={distance:.1f}, openness={openness}")
                 
-                bos = calculate_bos(population, income_level, competition, distance)
+                bos = calculate_bos(population, income_level, competition, distance, openness)
                 
                 if bos is not None:
                     scored_airports.append({
