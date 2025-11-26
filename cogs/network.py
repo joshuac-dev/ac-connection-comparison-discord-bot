@@ -36,7 +36,8 @@ class NetworkCog(commands.Cog):
     @app_commands.describe(
         hq_code="IATA code of your headquarters airport (e.g., LAX, JFK)",
         min_openness="Minimum country openness (0-10, default: 0)",
-        max_distance="Maximum distance from HQ in km (default: 20000)"
+        max_distance="Maximum distance from HQ in km (default: 20000)",
+        max_results="Maximum number of results to show (1-50, default: 15)"
     )
     async def network_run(
         self,
@@ -44,6 +45,7 @@ class NetworkCog(commands.Cog):
         hq_code: str,
         min_openness: Optional[int] = 0,
         max_distance: Optional[int] = 20000,
+        max_results: Optional[int] = 15,
     ):
         """
         Find optimal airports for airline network based on HQ location.
@@ -53,12 +55,16 @@ class NetworkCog(commands.Cog):
             hq_code: IATA code of HQ airport
             min_openness: Minimum country openness filter
             max_distance: Maximum distance from HQ filter
+            max_results: Maximum number of results to return
         """
         # Defer response as this will take time
         await interaction.response.defer()
         
+        # Clamp max_results to valid range
+        max_results = max(1, min(50, max_results))
+        
         logger.debug(f"========== NETWORK-RUN COMMAND STARTED ==========")
-        logger.debug(f"Parameters: hq_code={hq_code}, min_openness={min_openness}, max_distance={max_distance}")
+        logger.debug(f"Parameters: hq_code={hq_code}, min_openness={min_openness}, max_distance={max_distance}, max_results={max_results}")
         logger.debug(f"BOS Profile: {BOS_PROFILE}")
         logger.debug(f"User: {interaction.user} (ID: {interaction.user.id})")
         logger.debug(f"Guild: {interaction.guild.name if interaction.guild else 'DM'}")
@@ -320,11 +326,11 @@ class NetworkCog(commands.Cog):
                 )
                 return
             
-            # Sort by BOS descending and take top 15
+            # Sort by BOS descending and take top N
             scored_airports.sort(key=lambda x: x["bos"], reverse=True)
-            top_airports = scored_airports[:15]
+            top_airports = scored_airports[:max_results]
             
-            logger.debug(f"Top 15 airports by BOS:")
+            logger.debug(f"Top {max_results} airports by BOS:")
             for i, ap in enumerate(top_airports, 1):
                 logger.debug(f"  {i}. {ap['iata']}: BOS={ap['bos']:.2f}, pop={ap['population']}, income={ap['income']}, comp={ap['competition']}")
             
@@ -386,9 +392,14 @@ class NetworkCog(commands.Cog):
         table = "\n".join(lines)
         
         # Ensure table fits within Discord message limit (2000 chars)
+        # With up to 50 results, we may need to truncate by removing complete rows
         if len(table) > 1900:
-            # Truncate if too long (shouldn't happen with 15 entries)
-            table = table[:1900] + "..."
+            # Remove rows from the end until we fit
+            while len(table) > 1900 and len(lines) > 3:  # Keep header and at least 1 result
+                lines.pop()
+            table = "\n".join(lines)
+            if len(table) > 1900:
+                table = table[:1900] + "..."
         
         return table
 
