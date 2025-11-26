@@ -334,14 +334,15 @@ class NetworkCog(commands.Cog):
             for i, ap in enumerate(top_airports, 1):
                 logger.debug(f"  {i}. {ap['iata']}: BOS={ap['bos']:.2f}, pop={ap['population']}, income={ap['income']}, comp={ap['competition']}")
             
-            # Format output table
-            table = self._format_table(top_airports)
+            # Format output tables (may be multiple if results exceed Discord limit)
+            tables = self._format_tables(top_airports)
             
             logger.debug(f"========== NETWORK-RUN COMMAND COMPLETED ==========")
-            logger.debug(f"Returning {len(top_airports)} results to user")
+            logger.debug(f"Returning {len(top_airports)} results to user in {len(tables)} message(s)")
             
-            # Send response
-            await interaction.followup.send(f"```\n{table}\n```")
+            # Send response(s)
+            for table in tables:
+                await interaction.followup.send(f"```\n{table}\n```")
             
         except Exception as e:
             logger.error(f"Error in network-run command: {e}")
@@ -351,27 +352,25 @@ class NetworkCog(commands.Cog):
                 ephemeral=True,
             )
     
-    def _format_table(self, airports: List[Dict]) -> str:
+    def _format_tables(self, airports: List[Dict]) -> List[str]:
         """
-        Format airports data as a fixed-width table.
+        Format airports data as fixed-width tables, splitting across multiple messages if needed.
         
         Args:
             airports: List of airport data dictionaries
         
         Returns:
-            Formatted table string
+            List of formatted table strings (one per message)
         """
-        # Build header
-        lines = []
         header = (
             "Rank | IATA | Name                   | CC(Open) | Dist(km) | "
             "Pop     | Income | CompSeats | BOS"
         )
         separator = "-" * len(header)
-        lines.append(header)
-        lines.append(separator)
+        header_lines = [header, separator]
         
-        # Build rows
+        # Build all rows
+        all_rows = []
         for i, airport in enumerate(airports, 1):
             # Truncate name to 22 characters
             name = airport["name"][:22].ljust(22)
@@ -387,20 +386,38 @@ class NetworkCog(commands.Cog):
                 f"{airport['competition']:9d} | "
                 f"{airport['bos']:6.2f}"
             )
-            lines.append(row)
+            all_rows.append(row)
         
-        table = "\n".join(lines)
+        # Split rows into tables that fit within Discord's limit
+        # Account for code block markers (```\n and \n```) = ~8 chars
+        max_table_length = 1900
+        tables = []
+        current_rows = []
         
-        # Ensure table fits within Discord message limit (2000 chars)
-        # With up to 50 results, we may need to truncate by removing complete rows
-        while len(table) > 1900 and len(lines) > 3:  # Keep header and at least 1 result
-            lines.pop()
-            table = "\n".join(lines)
+        for row in all_rows:
+            # Build tentative table with current rows + new row
+            tentative_lines = header_lines + current_rows + [row]
+            tentative_table = "\n".join(tentative_lines)
+            
+            if len(tentative_table) <= max_table_length:
+                current_rows.append(row)
+            else:
+                # Current table is full, save it and start new one
+                if current_rows:
+                    tables.append("\n".join(header_lines + current_rows))
+                # Verify single row fits with header (it always should, but be safe)
+                single_row_table = "\n".join(header_lines + [row])
+                if len(single_row_table) <= max_table_length:
+                    current_rows = [row]
+                else:
+                    # Skip oversized row (shouldn't happen with our format)
+                    current_rows = []
         
-        if len(table) > 1900:
-            table = table[:1900] + "..."
+        # Don't forget the last table
+        if current_rows:
+            tables.append("\n".join(header_lines + current_rows))
         
-        return table
+        return tables
 
 
 async def setup(bot: commands.Bot):
